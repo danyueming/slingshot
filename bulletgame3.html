@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title></title>
+    <script  type="text/javascript">
+       var cwidth=1200;
+       var cheight=600;
+       var ctx;
+       var canvas1;
+       var everything=[];
+       var tid;//保存定时时间的标识符变量
+       var startrockx=200;//开始位置x
+       var startrocky=240;//开始位置y
+       var ballx=startrockx;
+       var bally=startrocky;
+       var ballrad=10;
+       var ballradsq=ballrad*ballrad;
+       var inmotion=false;
+       var horvelocity;
+       var verticalvel1;
+       var verticalvel2;
+       var gravity=2;
+       var chicken=new Image();
+       chicken.src="chicken.jpg";//原目标
+       var feathers=new Image();
+       feathers.src="feathers.gif";//命中后
+
+        function Sling(bx,by,s1x,s1y,s2x,s2y,s3x,s3y,stylestring){//弹弓的属性
+            this.bx=bx;
+            this.by=by;
+            this.s1x=s1x;
+            this.s1y=s1y;
+            this.s2x=s2x;
+            this.s2y=s2y;
+            this.s3x=s3x;
+            this.s3y=s3y;
+            this.strokeStyle=stylestring; //设置strokeStyle的属性
+            this.draw=drawsling;
+            this.moveit=movesling;
+
+        }
+
+        function drawsling(){
+            ctx.strokeStyle=this.strokeStyle;//设置样式
+            ctx.lineWidth=4;
+            ctx.beginPath();
+            ctx.moveTo(this.bx,this.by);
+            ctx.lineTo(this.s1x,this.s1y);
+            ctx.moveTo(this.bx,this.by);
+            ctx.lineTo(this.s2x,this.s2y);
+            ctx.moveTo(this.s1x,this.s1y);
+            ctx.lineTo(this.s2x,this.s2y);
+            ctx.lineTo(this.s3x,this.s3y);
+            ctx.stroke();
+
+        }
+
+        function movesling(dx,dy){
+            this.bx+=dx;
+            this.by+=dy;
+            this.s1x+=dx;
+            this.s1y+=dy;
+            this.s2x+=dx;
+            this.s2y+=dy;
+            this.s3x+=dx;
+            this.s3y+=dy;
+
+        }
+/** 画出那个弹弓  ****/
+        var mysling=new Sling(startrockx,startrocky,startrockx+80,startrocky-10,
+           startrockx+80,startrocky+10,startrockx+70,startrocky+180,"rgb(120,20,10)");
+  /******************/
+        function Ball(sx,sy,rad,stylestring){
+            this.sx=sx;
+            this.sy=sy;
+            this.rad=rad;
+            this.draw=drawball;
+            this.moveit=moveball;
+            this.fillstyle=stylestring;
+        }
+
+        function drawball(){
+            ctx.fillStyle=this.fillstyle;
+            ctx.beginPath();
+            ctx.arc(this.sx,this.sy,this.rad,0,Math.PI*2,true);
+            ctx.fill();
+        }
+
+        function moveball(dx,dy){
+
+            this.sx+=dx;
+            this.sy+=dy;
+
+        }
+
+  var cball=new Ball(startrockx,startrocky,ballrad,"rgb(250,0,0)");
+
+         function Myretangle(sx,sy,swidth,sheight,stylestring){
+             this.sx=sx;
+             this.sy=sy;
+             this.swidth=swidth;
+             this.sheight=sheight;
+             this.fillstyle=stylestring;
+             this.draw=drawrects;
+             this.moveit=moveball;
+        }
+
+        function drawrects(){
+            ctx.fillStyle=this.fillstyle;
+            ctx.fillRect(this.sx,this.sy,this.swidth,this.sheight);
+        }
+
+        function Picture(sx,sy,swidth,sheight,imga){
+            this.sx=sx;
+            this.sy=sy;
+            this.swidth=swidth;
+            this.sheight=sheight;
+            this.img=imga;
+            this.draw=drawAnImage;
+            this.moveit=moveball;
+        }
+
+        function drawAnImage(){
+            ctx.drawImage(this.img,this.sx,this.sy,this.swidth,this.sheight)
+        }
+
+        var target=new Picture(700,210,209,179,chicken);//原目标，鸡
+        var ground=new Myretangle(0,370,1200,30,"rgb(10,250,0)");
+        everything.push(target);
+        everything.push(ground);//将ground放在鸡爪的上层
+        everything.push(mysling);
+        everything.push(cball);
+
+        function init(){
+            ctx=document.getElementById('canvas').getContext('2d');
+            canvas1=document.getElementById('canvas');
+            canvas1.addEventListener('mousedown',findball,false);//设置鼠标按下事件,在捕获或冒泡阶段执行
+            canvas1.addEventListener('mousemove',moveit,false);//设置鼠标移动事件
+            canvas1.addEventListener('mouseup',finish,false);//设置鼠标释放事件
+            drawall();
+        }
+
+        function findball(ev) {
+            var mx;//当前鼠标的坐标
+            var my;
+            if (ev.layerX || ev.layerX == 0) {//相对当前坐标系的border左上角开始的坐标,
+                mx = ev.layerX;
+                my = ev.layerY;
+            }
+            else if (ev.offsetX || ev.offsetX == 0) {//相对当前坐标系的border左上角开始的坐标
+                mx = ev.offsetX;
+                my = ev.offsetY;
+            }
+            else {
+                alert('不支持');
+            }
+            if (distsq(mx, my, cball.sx, cball.sy) < ballradsq) {//子弹位于子弹上么
+                inmotion = true;
+                drawall();//绘制所有对象
+
+            }
+        }
+
+        function distsq(x1,y1,x2,y2){
+            return (x1-x2)*(x1-x2)+(y1-y2)*(y1-y2);
+        }
+
+        function moveit(ev){//mousemove处理函数
+            var mx;
+            var my;
+            if (inmotion){
+                if(ev.layerX || ev.layerX== 0){
+                    mx=ev.layerX;
+                    my=ev.layerY;
+                }
+                else if(ev.offsetX || ev.offsetX== 0){
+                    mx=ev.offsetX;
+                    my=ev.offsetY;
+                }
+                cball.sx=mx;//定位ball的位置
+                cball.sy=my;
+                mysling.bx=mx;//定位sling的位置
+                mysling.by=my;
+                drawall();
+            }
+        }
+
+        function finish(ev){//mousedown处理函数
+            if(inmotion){//在运动么
+                inmotion=false;//重置inmotion
+                var outofcannon= distsq(mysling.bx,mysling.by,mysling.s1x,mysling.s1y)/700;//outofcannon与距离成正比
+                var anglerradians=-Math.atan2(mysling.s1y-mysling.by,mysling.s1x-mysling.bx);
+                horvelocity= outofcannon*Math.cos(anglerradians);
+                verticalvel1=-outofcannon*Math.sin(anglerradians);
+                drawall();
+                tid=setInterval(change,100);
+
+            }
+
+        }
+        function drawall(){
+            ctx.clearRect(0,0,cwidth,cheight);
+            var i;
+            for (i=0;i<everything.length;i++){
+                everything[i].draw();
+            }
+        }
+
+        function change(){
+            var dx=horvelocity;
+            verticalvel2=verticalvel1+gravity;
+            var dy=(verticalvel1+verticalvel2)*.5;
+            verticalvel1=verticalvel2;
+            cball.moveit(dx,dy);
+            var bx=cball.sx;
+            var by=cball.sy;
+            if((bx>=(target.sx+40))&&(bx<=(target.sx+target.swidth-40))&&
+                    (by>=(target.sy+40))&&(by<=(target.sy+target.sheight-40))){
+                target.img=feathers;
+             /* 第一种方法  let success=document.createElement('audio');
+                success.setAttribute('src','good.mp3');
+                success.play();
+             */
+                /**第二种***/
+                let success=document.createElement('embed');
+                success.src="good.mp3";
+                document.body.appendChild(success);
+
+            }
+            if(by>=ground.sy){
+                clearInterval(tid);
+
+            }
+            drawall();
+        }
+    </script>
+</head>
+
+
+<body onload="init()">
+<canvas id="canvas" width="1200" height="600"></canvas>
+
+<input style="position: absolute;left: 100px;top: 500px" type="button" onclick="location.reload()" value="再来一次"/>
+
+</body>
+</html>
